@@ -84,9 +84,10 @@ def main():
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from das_v1 import DASv1
     from v2.das_v2 import DASv2
+    from das_v6 import DASv6
     
-    print(f"\n{'Type':<15} | {'Python v1':>12} | {'Python v2':>12} | {'Built-in':>12}")
-    print("-" * 60)
+    print(f"\n{'Type':<15} | {'Python v1':>12} | {'Python v2':>12} | {'Python v6':>12} | {'Built-in':>12}")
+    print("-" * 75)
     
     for dtype in data_types:
         random.seed(42)
@@ -110,6 +111,7 @@ def main():
         
         v1_times = []
         v2_times = []
+        v6_times = []
         builtin_times = []
         
         for _ in range(args.trials):
@@ -119,6 +121,9 @@ def main():
             t2 = run_python_benchmark(DASv2, data)
             v2_times.append(t2)
             
+            t6 = run_python_benchmark(DASv6, data)
+            v6_times.append(t6)
+            
             data_copy = data.copy()
             start = time.perf_counter()
             data_copy.sort()
@@ -126,9 +131,10 @@ def main():
         
         avg_v1 = sum(v1_times) / len(v1_times) * 1000
         avg_v2 = sum(v2_times) / len(v2_times) * 1000
+        avg_v6 = sum(v6_times) / len(v6_times) * 1000
         avg_builtin = sum(builtin_times) / len(builtin_times) * 1000
         
-        print(f"{dtype:<15} | {avg_v1:>10.2f} ms | {avg_v2:>10.2f} ms | {avg_builtin:>10.2f} ms")
+        print(f"{dtype:<15} | {avg_v1:>10.2f} ms | {avg_v2:>10.2f} ms | {avg_v6:>10.2f} ms | {avg_builtin:>10.2f} ms")
     
     print("\n" + "=" * 70)
     print("Note: Python built-in sort uses Timsort (adaptive merge sort)")

@@ -19,9 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   missing from the repository)
 - `benchmark_extended.cpp`: extended 14-scenario benchmark comparing DAS v1 /
   DAS v2 against `std::sort` (was referenced by docs but missing)
-- `TestDASv5` unit tests and a three-way (v1/v2/v5) cross-consistency test
+- `das_v6.py`: run-adaptive hybrid (experimental) - single-pass run
+  detection (descending runs reversed in place), natural merge for
+  few-run data (O(n·log R), stable) with v2-style quicksort fallback;
+  includes `TestDASv6` with a merge-path stability test, a v6 column in
+  the benchmark script, and a v6 demo entry point
+- `TestDASv5` unit tests and cross-consistency tests covering v1/v2/v5/v6
 - GitHub Actions CI: Python pytest matrix (3.8 / 3.13) + C++ build & test
 - `.gitignore`
+
+### Fixed
+- v5 counting-sort path mis-triggered on continuous float data: the
+  value-range heuristic (`range < size/10`) passes for any bounded float
+  distribution while unique values are unbounded, silently degrading to a
+  dict + built-in sort. It now aborts early and falls back to quicksort
+  when unique values exceed `min(1024, size/4)`
 
 ### Changed
 - Python implementations (v1, v2, v5) converted from recursion to explicit

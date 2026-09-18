@@ -22,8 +22,6 @@ DAS Sort v5.0 - 终极优化版
 空间复杂度: O(log n) 显式栈
 """
 
-from collections import defaultdict
-
 
 class DASv5:
     """DAS Sort v5.0 - 终极优化版"""
@@ -71,12 +69,26 @@ class DASv5:
             left += 1
             right -= 1
             
-    def _sort_few_unique(self, data, left, right, min_val, max_val):
-        """少量唯一值优化 - 计数排序思想 O(n)"""
-        count = defaultdict(int)
+    def _try_counting_sort(self, data, left, right):
+        """
+        少量唯一值优化 - 计数排序思想 O(n)
+
+        仅当唯一值数量 <= min(1024, size/4) 时执行 (超过则 dict 开销逼近
+        快排, 放弃); 唯一值超限立即早退, 避免对连续浮点等全唯一数据白白
+        构建大 dict。
+
+        Returns:
+            bool: 是否已完成排序
+        """
+        size = right - left + 1
+        max_unique = min(1024, size // 4)
+        count = {}
         for i in range(left, right + 1):
-            count[data[i]] += 1
-            
+            v = data[i]
+            count[v] = count.get(v, 0) + 1
+            if len(count) > max_unique:
+                return False  # 唯一值过多, 交回快排
+
         idx = left
         for val in sorted(count.keys()):
             for _ in range(count[val]):
@@ -84,6 +96,7 @@ class DASv5:
                     self.swaps += 1
                 data[idx] = val
                 idx += 1
+        return True
             
     def _sort(self, data, left, right):
         """DAS Sort v5.0 核心函数 (显式栈实现, 无递归)"""
@@ -131,8 +144,8 @@ class DASv5:
                 
             # 重复数据检测: 少量唯一值用计数排序
             if range_val < size / 10 and size > 1000:
-                self._sort_few_unique(data, left, right, min_val, max_val)
-                continue
+                if self._try_counting_sort(data, left, right):
+                    continue
                 
             # 自适应分界点: 根据数据分布调整
             sample_size = min(size, 100)
