@@ -119,6 +119,34 @@ v1 (值中点枢轴 + 两路分区 + 全有全无的有序检测) 加入对比�
 结论: v1 是 DAS 系列中唯一没有任何场景进入前二的实现。它的价值在于
 确立 O(n) 检测思想, 工程上已被 v6 全面取代。
 
+### 4.8 Rust 生态快照: 生态位"部分"存在
+
+把 v1 移植到 Rust (零 unsafe, 见 [rust_port/](rust_port/)) 并在 GitHub
+Actions runner (rustc 1.98.1) 上对比 Rust 标准库 —— 1.81+ 的 std 正是
+上文预言的 "Timsort + pdqsort 混合体": 稳定 `sort()` 用 driftsort,
+`sort_unstable()` 用 ipnsort (pdqsort 系)。结果 (n=1M):
+
+| 场景 | das_v1 | std sort (driftsort) | sort_unstable (ipnsort) |
+|------|--------|----------------------|-------------------------|
+| Sorted     | **0.13ms** 🥇 | 0.56ms | 0.56ms |
+| Reverse    | 0.88ms | 0.66ms | **0.65ms** 🥇 |
+| Random     | 87.9ms | 20.0ms | **20.6ms** 🥇 |
+| AlmostSort | **10.3ms** 🥇 | 28.7ms | 13.2ms |
+| OrganPipe  | 16.1ms | **3.71ms** 🥇 | 16.7ms |
+
+三个反直觉发现:
+
+- v1 在**完美有序**上反赢现代 Rust std 4.3 倍 —— driftsort 的 run
+  状态机 + total_cmp 全序比较的开销, 高于 v1 的裸扫描 + 裸 `<`
+- v1 在 **AlmostSort 上全场第一** —— 1000 次随机交换产生 ~2000 个碎
+  run, driftsort 需约 11 趟归并; v1 的快排兜底 + 近乎完美的值枢轴
+  反而更快。而 C++ 上 Timsort 是 AlmostSort 冠军 —— 说明自适应之王
+  取决于乱序的 *结构*, 没有普适答案
+- 随机数据 4.3 倍差距与 C++ 对 pdqsort 的 3.9 倍高度一致:
+  无分支分区的代差是跨语言稳定的
+- 公平性说明: std 保证 NaN 全序语义 (total_cmp), v1 用裸 `<` 不处理
+  NaN —— v1 赢的场景有一部分来自"承诺更少"
+
 ### 5. 总结定位
 
 > DAS v6 是 Timsort 前半部分 (run 检测 + 自然归并) 的独立再发明,
