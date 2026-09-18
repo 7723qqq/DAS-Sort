@@ -8,10 +8,16 @@
 //! | 维度 | das_v1 (直译) | das_idiomatic (本模块) |
 //! |------|--------------|------------------------|
 //! | API | 自由函数 `das_sort(&mut v)` | extension trait: `v.das_sort()` |
-//! | 分区 | 手写下标双指针 | [`slice::partition_in_place`] 标准原语 |
 //! | min/max | 手写循环 | `iter().copied().fold()` 单趟 |
 //! | 栈 | 固定数组 `[(usize,usize); 128]` + 手动 top | `Vec` + `push/pop` |
+//! | 分区 | 全局下标索引 | 子切片上的局部索引 + [`slice::swap`] 原语 |
 //! | 文档 | 模块级 | 函数级 `///` + 复杂度/语义契约 |
+//!
+//! 关于分区原语的注记: stable Rust 并没有提供原位分区 (in-place
+//! partition) 的标准原语 —— `partition_in_place` 至今仍是 nightly-only
+//! 实验特性 (rust-lang/rust#62543)。std 自己的 sort 内部靠 unsafe 实现
+//! 分区。因此"地道"的安全 Rust 只能做到: 分区逻辑局限在子切片上
+//! (让边界检查易于被 LLVM 消除) 并使用 `swap` 原语, 而非全局索引。
 //!
 //! 为什么不做成泛型 `<T: Ord>`: v1 的身份是 *值中点* 枢轴 `(min+max)/2`,
 //! 需要算术运算; 纯 std 无 num-traits 时无法对任意数值类型泛型化。
@@ -25,7 +31,7 @@ pub trait DasSort {
     /// # 算法
     /// 1. 单趟 [`slice::is_sorted`] 检测 -> 已有序则 O(n) 返回
     /// 2. pivot = (min + max) / 2 (值中点, 非元素)
-    /// 3. [`slice::partition_in_place`] 两路分区 <= pivot | > pivot
+    /// 3. 两路分区 <= pivot | > pivot (子切片 + `swap`, 无 nightly 原语)
     /// 4. 较大的一半后出栈 (先处理), 显式栈深度 O(log n)
     ///
     /// # 复杂度
@@ -69,8 +75,8 @@ impl DasSort for [f64] {
             }
             let pivot = (mn + mx) / 2.0;
 
-            // 两路分区: 标准库原语, 返回满足 (<= pivot) 的元素个数
-            let count = subslice.partition_in_place(|&x| x <= pivot);
+            // 两路分区 (子切片局部索引 + swap): 返回 <= pivot 的元素个数
+            let count = partition_le(subslice, pivot);
             let split = left + count;
 
             // 较大的一半后压栈 (先处理), 栈深 O(log n)
@@ -91,6 +97,18 @@ impl DasSort for [f64] {
             }
         }
     }
+}
+
+/// 两路分区: <= pivot 的元素换到前段, 返回其数量 (单趟, 前段保序)
+fn partition_le(s: &mut [f64], pivot: f64) -> usize {
+    let mut i = 0;
+    for j in 0..s.len() {
+        if s[j] <= pivot {
+            s.swap(i, j);
+            i += 1;
+        }
+    }
+    i
 }
 
 fn insertion_sort(s: &mut [f64]) {

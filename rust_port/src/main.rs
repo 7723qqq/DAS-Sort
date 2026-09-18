@@ -58,7 +58,7 @@ fn main() {
         );
         println!("{}", "-".repeat(56));
 
-        let mut scenario = |name: &str, data: Vec<f64>| {
+        let scenario = |name: &str, data: Vec<f64>| {
             let expected = {
                 let mut e = data.clone();
                 e.sort_by(f64::total_cmp);
