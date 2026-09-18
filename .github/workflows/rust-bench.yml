@@ -7,6 +7,9 @@ on:
   pull_request:
     paths: ["rust_port/**"]
 
+permissions:
+  contents: write
+
 jobs:
   bench:
     name: DAS v1 Rust port vs std sorts
@@ -21,4 +24,28 @@ jobs:
         run: cargo test --release --manifest-path rust_port/Cargo.toml
 
       - name: Benchmark vs std sorts
-        run: cargo run --release --manifest-path rust_port/Cargo.toml
+        run: |
+          set -o pipefail
+          cargo run --release --manifest-path rust_port/Cargo.toml | tee bench_out.txt
+          {
+            echo "# Rust 移植基准结果 (GitHub Actions runner)"
+            echo
+            echo "- 运行时间: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "- 工具链: $(rustc --version)"
+            echo
+            echo '```'
+            cat bench_out.txt
+            echo '```'
+          } > rust_port/BENCH_RESULTS.md
+
+      - name: Commit results back
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add rust_port/BENCH_RESULTS.md
+          if git diff --cached --quiet; then
+            echo "No results change"
+          else
+            git commit -m "bench: update Rust port results (CI run ${{ github.run_id }}) [skip ci]"
+            git push
+          fi
