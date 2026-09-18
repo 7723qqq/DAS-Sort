@@ -16,6 +16,13 @@
 
 ## Performance
 
+> **vs industrial-grade sorts**: see [INDUSTRIAL_COMPARISON.md](INDUSTRIAL_COMPARISON.md)
+> for a head-to-head benchmark against `std::sort`, `std::stable_sort`, pdqsort
+> and Timsort (gfx/cpp-TimSort), with an honest gap analysis.
+> TL;DR: DAS v6 crushes non-adaptive `std::sort` (15-40x on structured data),
+> Timsort still leads the adaptive frontier by 20%-4x, and pdqsort leads
+> random data by ~4x.
+
 **Test Environment**: Windows 11, Visual Studio 2022, /O2 optimization
 
 ### DAS v2 vs std::sort (100K elements)

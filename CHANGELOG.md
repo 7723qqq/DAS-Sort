@@ -32,6 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI: Python pytest matrix (3.8 / 3.13) + C++ build & test
 - `.gitignore`
 
+### Added
+- `INDUSTRIAL_COMPARISON.md`: head-to-head benchmark against industrial-grade
+  sorters (`std::sort`, `std::stable_sort`, pdqsort, gfx Timsort) with an
+  honest gap analysis, plus the optional third-party benchmark harness
+  `benchmark/industrial_bench.cpp` (third-party headers auto-detected via
+  `__has_include`; results verified against a `std::sort` oracle)
+
 ### Changed
 - Examples now also benchmark DAS v6 on their near-sorted timestamp data
   (v6 is 3-5x faster than v2 there)
