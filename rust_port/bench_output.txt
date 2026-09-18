@@ -1,9 +1,3 @@
-# Rust 移植基准结果 (GitHub Actions runner)
-
-- 运行时间: 2026-09-18 08:02 UTC
-- 工具链: rustc 1.98.1 (48a229cea 2026-09-01)
-
-```
 
 ===== n = 100000 =====
 Scenario         das_v1   das_idio   std sort   unstable
@@ -27,4 +21,3 @@ Note: 7 runs truncated mean. das_v1 = C-style port, das_idio =
 idiomatic rewrite (trait + partition_in_place + Vec stack).
 std sort = stable (driftsort on 1.81+, Timsort before);
 sort_unstable = ipnsort on 1.81+ (pdqsort before).
-```
