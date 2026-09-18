@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# C++ build artifacts
+*.o
+*.obj
+*.exe
+test_das
+test_das.exe
+das_bench
+das_bench.exe
+benchmark_extended
+benchmark_extended.exe
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

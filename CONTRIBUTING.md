@@ -26,15 +26,16 @@ Be respectful and inclusive. We welcome contributions from everyone.
 ### C++ Development
 
 ```bash
+# Build and run unit tests (no external dependencies)
+g++ -O2 -std=c++17 -Wall -Wextra test/test_das.cpp -o test_das
+./test_das
+
 # Build with MSVC
-cl /O2 /EHsc benchmark_extended.cpp
+cl /O2 /EHsc test\test_das.cpp
 
-# Build with GCC
-g++ -O2 -std=c++17 benchmark_extended.cpp -o benchmark
-
-# Run tests (requires Catch2)
-# Download Catch2 from https://github.com/catchorg/Catch2
-cl /O2 /EHsc test/test_das.cpp
+# Build benchmarks
+g++ -O2 -std=c++17 benchmark_extended.cpp -o benchmark_extended
+g++ -O2 -std=c++17 das_sort_pure.cpp -o das_bench
 ```
 
 ### Python Development
@@ -109,10 +110,16 @@ python benchmark/run_benchmark.py --size 100000
 
 ```
 DAS-Sort/
-├── das_v1.hpp          # C++ v1 implementation
-├── das_v2.hpp          # C++ v2 implementation
-├── das_v1.py           # Python v1 implementation
-├── das_v2.py           # Python v2 implementation
+├── v2/
+│   ├── __init__.py
+│   ├── das_v2.hpp          # C++ v2 implementation
+│   ├── das_v2.py           # Python v2 implementation
+│   └── BENCHMARK.md
+├── das_v1.hpp              # C++ v1 implementation
+├── das_v1.py               # Python v1 implementation
+├── das_v5.py               # Python experimental v5
+├── das_sort_pure.cpp       # standalone v1-style sort + benchmark
+├── benchmark_extended.cpp  # extended 14-scenario benchmark
 ├── benchmark/
 │   └── run_benchmark.py
 ├── test/

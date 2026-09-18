@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from das_v2 import DASv2
+from v2.das_v2 import DASv2
 
 
 def generate_log_entries(count, out_of_order_ratio=0.001):

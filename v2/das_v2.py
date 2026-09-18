@@ -16,13 +16,10 @@ Time complexity:
 - Average: O(n log n)
 - Worst: O(n^2) - specially constructed data
 
-Space complexity: O(log n) recursion stack
+Space complexity: O(log n) explicit stack (no recursion)
 """
 
-import sys
 import random
-
-sys.setrecursionlimit(100000)
 
 
 class DASv2:
@@ -141,59 +138,62 @@ class DASv2:
         return (m0, m1, m2)
         
     def _sort(self, data, left, right):
-        """DAS Sort v2 core recursive function"""
-        if left >= right:
-            return
+        """DAS Sort v2 core function (explicit stack, no recursion)"""
+        stack = [(left, right)]
+        while stack:
+            left, right = stack.pop()
+            if left >= right:
+                continue
+                
+            size = right - left + 1
             
-        size = right - left + 1
-        
-        if size <= 16:
-            self._insertion_sort(data, left, right)
-            return
-            
-        is_sorted = True
-        for i in range(left, right):
-            self.comparisons += 1
-            if data[i] > data[i + 1]:
-                is_sorted = False
-                break
-        if is_sorted:
-            return
-            
-        p1, p2, p3 = self._sample_quantiles(data, left, right)
-        
-        if p1 == p2 == p3:
-            min_val = min(data[left:right+1])
-            max_val = max(data[left:right+1])
-            pivot = (min_val + max_val) / 2
-            i, j, k = left, left, right
-            while j <= k:
+            if size <= 16:
+                self._insertion_sort(data, left, right)
+                continue
+                
+            is_sorted = True
+            for i in range(left, right):
                 self.comparisons += 1
-                if data[j] < pivot:
-                    data[i], data[j] = data[j], data[i]
-                    self.swaps += 1
-                    i += 1
-                    j += 1
-                elif data[j] > pivot:
-                    data[j], data[k] = data[k], data[j]
-                    self.swaps += 1
-                    k -= 1
-                else:
-                    j += 1
-            self._sort(data, left, i - 1)
-            self._sort(data, k + 1, right)
-            return
+                if data[i] > data[i + 1]:
+                    is_sorted = False
+                    break
+            if is_sorted:
+                continue
+                
+            p1, p2, p3 = self._sample_quantiles(data, left, right)
             
-        b1, b2, b3 = self._four_way_partition(data, left, right, p1, p2, p3)
-        
-        if b1 > left:
-            self._sort(data, left, b1 - 1)
-        if b2 > b1:
-            self._sort(data, b1, b2 - 1)
-        if b3 > b2:
-            self._sort(data, b2, b3 - 1)
-        if right >= b3:
-            self._sort(data, b3, right)
+            if p1 == p2 == p3:
+                min_val = min(data[left:right+1])
+                max_val = max(data[left:right+1])
+                pivot = (min_val + max_val) / 2
+                i, j, k = left, left, right
+                while j <= k:
+                    self.comparisons += 1
+                    if data[j] < pivot:
+                        data[i], data[j] = data[j], data[i]
+                        self.swaps += 1
+                        i += 1
+                        j += 1
+                    elif data[j] > pivot:
+                        data[j], data[k] = data[k], data[j]
+                        self.swaps += 1
+                        k -= 1
+                    else:
+                        j += 1
+                stack.append((left, i - 1))
+                stack.append((k + 1, right))
+                continue
+                
+            b1, b2, b3 = self._four_way_partition(data, left, right, p1, p2, p3)
+            
+            if b1 > left:
+                stack.append((left, b1 - 1))
+            if b2 > b1:
+                stack.append((b1, b2 - 1))
+            if b3 > b2:
+                stack.append((b2, b3 - 1))
+            if right >= b3:
+                stack.append((b3, right))
 
 
 if __name__ == "__main__":

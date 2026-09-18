@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Import paths: tests, examples and the benchmark script now import `DASv2`
+  from `v2.das_v2` (matching the README Quick Start); added `v2/__init__.py`
+- `test/test_das.cpp` now compiles standalone with a built-in minimal test
+  harness (previously required Catch2 and included a non-existent header)
+- `test/test_das.cpp` includes fixed to `../v2/das_v2.hpp`
+
+### Added
+- `das_v1.hpp`: C++ v1 implementation (was referenced by docs and tests but
+  missing from the repository)
+- `benchmark_extended.cpp`: extended 14-scenario benchmark comparing DAS v1 /
+  DAS v2 against `std::sort` (was referenced by docs but missing)
+- `TestDASv5` unit tests and a three-way (v1/v2/v5) cross-consistency test
+- GitHub Actions CI: Python pytest matrix (3.8 / 3.13) + C++ build & test
+- `.gitignore`
+
+### Changed
+- Python implementations (v1, v2, v5) converted from recursion to explicit
+  stacks; `sys.setrecursionlimit` hacks removed (deep or adversarial inputs
+  can no longer overflow the interpreter stack)
+- **DAS v5**: removed the silent final verification/repair scan - correctness
+  is now guaranteed by the algorithm itself; potential bugs surface instead
+  of being masked by an O(n^2) fallback
+- `das_v5.py` documented in README and CHANGELOG (previously undocumented)
+- README project structure and build instructions updated to match the actual
+  repository contents
+
 ## [2.0.0] - 2026-04-04
 
 ### Added

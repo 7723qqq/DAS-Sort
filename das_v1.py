@@ -10,19 +10,15 @@ DAS Sort v1.0 - 原版
 - 三向分区: < pivot | = pivot | > pivot
 - 自适应检测已排序数据 (O(n) 最佳情况)
 - 小数组使用插入排序优化
+- 显式栈实现 (无递归, 无递归深度限制)
 
 时间复杂度:
 - 最佳: O(n) - 已排序数据
 - 平均: O(n log n)
 - 最差: O(n²) - 特殊构造数据
 
-空间复杂度: O(log n) 递归栈
+空间复杂度: O(log n) 显式栈
 """
-
-import sys
-
-sys.setrecursionlimit(50000)
-
 
 class DASv1:
     """DAS Sort v1.0 - 原版二分分区"""
@@ -45,7 +41,6 @@ class DASv1:
         self.swaps = 0
         self._sort(data, 0, len(data) - 1)
         return data
-        
     def _insertion_sort(self, data, left, right):
         """插入排序 - 用于小数组优化 (n <= 16)"""
         for i in range(left + 1, right + 1):
@@ -62,51 +57,54 @@ class DASv1:
             data[j + 1] = key
             
     def _sort(self, data, left, right):
-        """DAS Sort 核心递归函数"""
-        if left >= right:
-            return
-            
-        size = right - left + 1
-        
-        # 小数组优化: 使用插入排序
-        if size <= 16:
-            self._insertion_sort(data, left, right)
-            return
-            
-        # 已排序检测: O(n) 最佳情况
-        is_sorted = True
-        for i in range(left, right):
-            self.comparisons += 1
-            if data[i] > data[i + 1]:
-                is_sorted = False
-                break
-        if is_sorted:
-            return
-            
-        # 计算密度自适应枢轴: (min + max) / 2
-        min_val = min(data[left:right+1])
-        max_val = max(data[left:right+1])
-        pivot = (min_val + max_val) / 2
-        
-        # 三向分区: [ < pivot | = pivot | > pivot ]
-        i, j, k = left, left, right
-        while j <= k:
-            self.comparisons += 1
-            if data[j] < pivot:
-                data[i], data[j] = data[j], data[i]
-                self.swaps += 1
-                i += 1
-                j += 1
-            elif data[j] > pivot:
-                data[j], data[k] = data[k], data[j]
-                self.swaps += 1
-                k -= 1
-            else:
-                j += 1
+        """DAS Sort 核心函数 (显式栈实现, 无递归)"""
+        stack = [(left, right)]
+        while stack:
+            left, right = stack.pop()
+            if left >= right:
+                continue
                 
-        # 递归排序左右两部分 (= pivot 部分已经有序)
-        self._sort(data, left, i - 1)
-        self._sort(data, k + 1, right)
+            size = right - left + 1
+            
+            # 小数组优化: 使用插入排序
+            if size <= 16:
+                self._insertion_sort(data, left, right)
+                continue
+                
+            # 已排序检测: O(n) 最佳情况
+            is_sorted = True
+            for i in range(left, right):
+                self.comparisons += 1
+                if data[i] > data[i + 1]:
+                    is_sorted = False
+                    break
+            if is_sorted:
+                continue
+                
+            # 计算密度自适应枢轴: (min + max) / 2
+            min_val = min(data[left:right+1])
+            max_val = max(data[left:right+1])
+            pivot = (min_val + max_val) / 2
+            
+            # 三向分区: [ < pivot | = pivot | > pivot ]
+            i, j, k = left, left, right
+            while j <= k:
+                self.comparisons += 1
+                if data[j] < pivot:
+                    data[i], data[j] = data[j], data[i]
+                    self.swaps += 1
+                    i += 1
+                    j += 1
+                elif data[j] > pivot:
+                    data[j], data[k] = data[k], data[j]
+                    self.swaps += 1
+                    k -= 1
+                else:
+                    j += 1
+                    
+            # 子区间压栈 (= pivot 部分已经有序)
+            stack.append((left, i - 1))
+            stack.append((k + 1, right))
 
 
 if __name__ == "__main__":

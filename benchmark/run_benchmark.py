@@ -83,7 +83,7 @@ def main():
     
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from das_v1 import DASv1
-    from das_v2 import DASv2
+    from v2.das_v2 import DASv2
     
     print(f"\n{'Type':<15} | {'Python v1':>12} | {'Python v2':>12} | {'Built-in':>12}")
     print("-" * 60)

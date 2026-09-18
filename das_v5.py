@@ -12,20 +12,17 @@ DAS Sort v5.0 - 终极优化版
 - 自适应分界点: 根据数据分布动态调整分区边界
 - 小数组优化: n <= 16 使用插入排序
 - 已排序检测: O(n) 最佳情况
-- 最终保底验证扫描
+- 显式栈实现 (无递归, 无递归深度限制)
 
 时间复杂度:
 - 最佳: O(n) - 已排序 / 逆序 / 重复数据
 - 平均: O(n log n) - 随机数据 (三分区 log₃n 深度)
 - 最差: O(n²) - 特殊构造数据
 
-空间复杂度: O(log n) 递归栈
+空间复杂度: O(log n) 显式栈
 """
 
-import sys
 from collections import defaultdict
-
-sys.setrecursionlimit(50000)
 
 
 class DASv5:
@@ -48,9 +45,6 @@ class DASv5:
         self.comparisons = 0
         self.swaps = 0
         self._sort(data, 0, len(data) - 1)
-        
-        # 最终保底验证扫描
-        self._final_verification_scan(data)
         
         return data
         
@@ -77,21 +71,6 @@ class DASv5:
             left += 1
             right -= 1
             
-    def _final_verification_scan(self, data):
-        """最终保底验证扫描 - 确保排序正确性"""
-        n = len(data)
-        for i in range(n - 1):
-            self.comparisons += 1
-            if data[i] > data[i + 1]:
-                # 发现未排序，修复
-                j = i + 1
-                key = data[j]
-                while j > 0 and data[j - 1] > key:
-                    self.comparisons += 1
-                    data[j] = data[j - 1]
-                    j -= 1
-                data[j] = key
-                
     def _sort_few_unique(self, data, left, right, min_val, max_val):
         """少量唯一值优化 - 计数排序思想 O(n)"""
         count = defaultdict(int)
@@ -107,92 +86,95 @@ class DASv5:
                 idx += 1
             
     def _sort(self, data, left, right):
-        """DAS Sort v5.0 核心递归函数"""
-        if left >= right:
-            return
+        """DAS Sort v5.0 核心函数 (显式栈实现, 无递归)"""
+        stack = [(left, right)]
+        while stack:
+            left, right = stack.pop()
+            if left >= right:
+                continue
+                
+            size = right - left + 1
             
-        size = right - left + 1
-        
-        # 小数组优化
-        if size <= 16:
-            self._insertion_sort(data, left, right)
-            return
+            # 小数组优化
+            if size <= 16:
+                self._insertion_sort(data, left, right)
+                continue
+                
+            # 已排序检测: O(n)
+            is_sorted = True
+            for i in range(left, right):
+                self.comparisons += 1
+                if data[i] > data[i + 1]:
+                    is_sorted = False
+                    break
+            if is_sorted:
+                continue
+                
+            # 逆序检测与降级: O(n)
+            is_reverse = True
+            for i in range(left, right):
+                self.comparisons += 1
+                if data[i] < data[i + 1]:
+                    is_reverse = False
+                    break
+            if is_reverse:
+                self._reverse_array(data, left, right)
+                continue
+                
+            # 计算三分区的两个分界点
+            min_val = min(data[left:right+1])
+            max_val = max(data[left:right+1])
+            range_val = max_val - min_val
             
-        # 已排序检测: O(n)
-        is_sorted = True
-        for i in range(left, right):
-            self.comparisons += 1
-            if data[i] > data[i + 1]:
-                is_sorted = False
-                break
-        if is_sorted:
-            return
+            if range_val == 0:
+                continue
+                
+            # 重复数据检测: 少量唯一值用计数排序
+            if range_val < size / 10 and size > 1000:
+                self._sort_few_unique(data, left, right, min_val, max_val)
+                continue
+                
+            # 自适应分界点: 根据数据分布调整
+            sample_size = min(size, 100)
+            sample_step = size // sample_size if size > sample_size else 1
+            sample = [data[left + i * sample_step] for i in range(min(sample_size, size))]
+            sample.sort()
             
-        # 逆序检测与降级: O(n)
-        is_reverse = True
-        for i in range(left, right):
-            self.comparisons += 1
-            if data[i] < data[i + 1]:
-                is_reverse = False
-                break
-        if is_reverse:
-            self._reverse_array(data, left, right)
-            return
+            median = sample[len(sample) // 2]
+            expected_median = (min_val + max_val) / 2
             
-        # 计算三分区的两个分界点
-        min_val = min(data[left:right+1])
-        max_val = max(data[left:right+1])
-        range_val = max_val - min_val
-        
-        if range_val == 0:
-            return
-            
-        # 重复数据检测: 少量唯一值用计数排序
-        if range_val < size / 10 and size > 1000:
-            self._sort_few_unique(data, left, right, min_val, max_val)
-            return
-            
-        # 自适应分界点: 根据数据分布调整
-        sample_size = min(size, 100)
-        sample_step = size // sample_size if size > sample_size else 1
-        sample = [data[left + i * sample_step] for i in range(min(sample_size, size))]
-        sample.sort()
-        
-        median = sample[len(sample) // 2]
-        expected_median = (min_val + max_val) / 2
-        
-        # 如果数据分布不均匀，使用中位数调整分界点
-        if abs(median - expected_median) > range_val * 0.2:
-            bound1 = (min_val + median) / 2
-            bound2 = (median + max_val) / 2
-        else:
-            # 数据分布均匀，标准三分区
-            bound1 = min_val + range_val / 3      # 1/3 分界点
-            bound2 = min_val + 2 * range_val / 3  # 2/3 分界点
-        
-        # 四向分区: [ <bound1 | [bound1,bound2] | >bound2 ]
-        i = left
-        j = left
-        k = right
-        
-        while j <= k:
-            self.comparisons += 1
-            if data[j] < bound1:
-                data[i], data[j] = data[j], data[i]
-                self.swaps += 1
-                i += 1
-                j += 1
-            elif data[j] > bound2:
-                data[j], data[k] = data[k], data[j]
-                self.swaps += 1
-                k -= 1
+            # 如果数据分布不均匀，使用中位数调整分界点
+            if abs(median - expected_median) > range_val * 0.2:
+                bound1 = (min_val + median) / 2
+                bound2 = (median + max_val) / 2
             else:
-                j += 1
-        
-        # 递归排序三个分区
-        self._sort(data, left, i - 1)   # 下区 (< bound1)
-        self._sort(data, i, k)          # 中区 ([bound1, bound2])
-        self._sort(data, k + 1, right)   # 上区 (> bound2)
+                # 数据分布均匀，标准三分区
+                bound1 = min_val + range_val / 3      # 1/3 分界点
+                bound2 = min_val + 2 * range_val / 3  # 2/3 分界点
+            
+            # 三向分区: [ <bound1 | [bound1,bound2] | >bound2 ]
+            i = left
+            j = left
+            k = right
+            
+            while j <= k:
+                self.comparisons += 1
+                if data[j] < bound1:
+                    data[i], data[j] = data[j], data[i]
+                    self.swaps += 1
+                    i += 1
+                    j += 1
+                elif data[j] > bound2:
+                    data[j], data[k] = data[k], data[j]
+                    self.swaps += 1
+                    k -= 1
+                else:
+                    j += 1
+            
+            # 子区间压栈
+            stack.append((left, i - 1))    # 下区 (< bound1)
+            stack.append((i, k))           # 中区 ([bound1, bound2])
+            stack.append((k + 1, right))   # 上区 (> bound2)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from das_v2 import DASv2
+from v2.das_v2 import DASv2
 
 
 def generate_sensor_data(count, delay_ratio=0.01):

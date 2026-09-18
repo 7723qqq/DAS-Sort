@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![C++](https://img.shields.io/badge/C++-17-blue.svg)](https://isocpp.org/)
 [![Python](https://img.shields.io/badge/Python-3.8+-green.svg)](https://www.python.org/)
+[![CI](https://github.com/7723qqq/DAS-Sort/actions/workflows/ci.yml/badge.svg)](https://github.com/7723qqq/DAS-Sort/actions/workflows/ci.yml)
 
 ## Features
 
@@ -37,6 +38,10 @@
 | Average Case | O(n log n) | O(n log n) |
 | Sorted Data | 11x faster | 9x faster |
 | Random Data | 1.1x slower | 1.35x slower |
+
+> **Experimental**: `das_v5.py` is a Python-only experimental version with
+> three-way value-band partitioning, reverse-order detection, and a
+> counting-sort path for few-unique data. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Algorithm
 
@@ -109,11 +114,18 @@ class DASv2:
 ## Build
 
 ```bash
-# MSVC
-cl /O2 /EHsc benchmark_extended.cpp
+# C++ unit tests (no external dependencies)
+g++ -O2 -std=c++17 -Wall -Wextra test/test_das.cpp -o test_das && ./test_das
 
-# GCC
-g++ -O2 -std=c++17 benchmark_extended.cpp -o benchmark
+# Extended benchmark (14 scenarios: DAS v1 / DAS v2 vs std::sort)
+g++ -O2 -std=c++17 benchmark_extended.cpp -o benchmark_extended && ./benchmark_extended
+
+# Standalone v1-style benchmark (9 sizes x 8 distributions)
+g++ -O2 -std=c++17 das_sort_pure.cpp -o das_bench && ./das_bench
+
+# MSVC (all of the above)
+cl /O2 /EHsc test\test_das.cpp
+cl /O2 /EHsc benchmark_extended.cpp
 
 # Python tests
 pip install pytest
@@ -125,20 +137,24 @@ pytest test/test_das.py -v
 ```
 DAS-Sort/
 ├── v2/
+│   ├── __init__.py
 │   ├── das_v2.hpp
 │   ├── das_v2.py
 │   └── BENCHMARK.md
 ├── das_v1.hpp
 ├── das_v1.py
-├── benchmark_extended.cpp
+├── das_v5.py              # experimental v5 (Python only)
+├── das_sort_pure.cpp      # standalone v1-style sort + benchmark
+├── benchmark_extended.cpp # extended 14-scenario benchmark
+├── benchmark/
+│   └── run_benchmark.py
 ├── test/
 │   ├── test_das.cpp
 │   └── test_das.py
-├── benchmark/
-│   └── run_benchmark.py
 ├── examples/
 │   ├── log_timestamp_sort.py
 │   └── sensor_timeseries_sort.py
+├── .github/workflows/ci.yml
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 └── README.md

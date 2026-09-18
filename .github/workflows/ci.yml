@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  python-tests:
+    name: Python tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install test dependencies
+        run: pip install pytest
+
+      - name: Run unit tests
+        run: pytest test/test_das.py -v
+
+      - name: Benchmark smoke test
+        run: python benchmark/run_benchmark.py --size 10000 --trials 1
+
+  cpp-tests:
+    name: C++ build & tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build unit tests
+        run: g++ -O2 -std=c++17 -Wall -Wextra test/test_das.cpp -o test_das
+
+      - name: Run unit tests
+        run: ./test_das
+
+      - name: Build standalone benchmark
+        run: g++ -O2 -std=c++17 das_sort_pure.cpp -o das_bench
+
+      - name: Build extended benchmark
+        run: g++ -O2 -std=c++17 benchmark_extended.cpp -o benchmark_extended
+
+      - name: Run extended benchmark (smoke)
+        run: ./benchmark_extended

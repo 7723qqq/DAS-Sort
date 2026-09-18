@@ -1,11 +1,48 @@
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+// test/test_das.cpp - DAS v1 / v2 unit tests (self-contained)
+//
+// No external test framework is required. A minimal harness provides
+// TEST_CASE / REQUIRE-style macros with pass/fail summary and a non-zero
+// exit code on failure.
+//
+// Build & run:
+//   g++ -O2 -std=c++17 -Wall -Wextra test/test_das.cpp -o test_das && ./test_das
+//   cl /O2 /EHsc test\test_das.cpp
+
 #include <vector>
 #include <random>
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
 
 #include "../das_v1.hpp"
-#include "../das_v2.hpp"
+#include "../v2/das_v2.hpp"
+
+// ============ Minimal test harness ============
+
+static int g_checks = 0;
+static int g_failures = 0;
+static const char* g_current_case = "";
+
+#define REQUIRE(cond)                                                       \
+    do {                                                                    \
+        ++g_checks;                                                         \
+        if (!(cond)) {                                                      \
+            ++g_failures;                                                   \
+            std::printf("    FAILED [%s] (line %d): %s\n",                  \
+                        g_current_case, __LINE__, #cond);                   \
+        }                                                                   \
+    } while (0)
+
+typedef void (*TestCaseFn)();
+
+static void run_case(const char* name, TestCaseFn fn) {
+    g_current_case = name;
+    int before = g_failures;
+    fn();
+    std::printf("%-55s %s\n", name, (g_failures == before) ? "ok" : "FAILED");
+}
+
+// ============ Helpers ============
 
 bool isSorted(const std::vector<double>& data) {
     for (size_t i = 0; i + 1 < data.size(); ++i) {
@@ -24,14 +61,16 @@ std::vector<double> generateRandom(int n, unsigned int seed = 42) {
     return data;
 }
 
-TEST_CASE("DASv1 - Empty array", "[das_v1]") {
+// ============ DASv1 tests ============
+
+static void test_v1_empty() {
     std::vector<double> data;
     DASv1 sorter;
     sorter.sort(data);
     REQUIRE(data.empty());
 }
 
-TEST_CASE("DASv1 - Single element", "[das_v1]") {
+static void test_v1_single() {
     std::vector<double> data = {42.0};
     DASv1 sorter;
     sorter.sort(data);
@@ -39,28 +78,28 @@ TEST_CASE("DASv1 - Single element", "[das_v1]") {
     REQUIRE(data[0] == 42.0);
 }
 
-TEST_CASE("DASv1 - Two elements sorted", "[das_v1]") {
+static void test_v1_two_sorted() {
     std::vector<double> data = {1.0, 2.0};
     DASv1 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv1 - Two elements reverse", "[das_v1]") {
+static void test_v1_two_reverse() {
     std::vector<double> data = {2.0, 1.0};
     DASv1 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv1 - All identical", "[das_v1]") {
+static void test_v1_all_identical() {
     std::vector<double> data(1000, 42.0);
     DASv1 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv1 - Already sorted", "[das_v1]") {
+static void test_v1_already_sorted() {
     std::vector<double> data;
     for (int i = 0; i < 1000; ++i) data.push_back(static_cast<double>(i));
     DASv1 sorter;
@@ -68,7 +107,7 @@ TEST_CASE("DASv1 - Already sorted", "[das_v1]") {
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv1 - Reverse sorted", "[das_v1]") {
+static void test_v1_reverse_sorted() {
     std::vector<double> data;
     for (int i = 1000; i > 0; --i) data.push_back(static_cast<double>(i));
     DASv1 sorter;
@@ -76,45 +115,55 @@ TEST_CASE("DASv1 - Reverse sorted", "[das_v1]") {
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv1 - Random data", "[das_v1]") {
+static void test_v1_random() {
     auto data = generateRandom(10000);
     DASv1 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv1 - Exactly 16 elements (insertion threshold)", "[das_v1]") {
+static void test_v1_exactly_16() {
     auto data = generateRandom(16);
     DASv1 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv1 - Exactly 32 elements", "[das_v1]") {
+static void test_v1_exactly_32() {
     auto data = generateRandom(32);
     DASv1 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv1 - Duplicates", "[das_v1]") {
+static void test_v1_duplicates() {
     std::vector<double> data(1000);
-    for (int i = 0; i < 1000; ++i) {
-        data[i] = static_cast<double>(i % 10);
-    }
+    for (int i = 0; i < 1000; ++i) data[i] = static_cast<double>(i % 10);
     DASv1 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv2 - Empty array", "[das_v2]") {
+static void test_v1_negative_values() {
+    std::mt19937 rng(7);
+    std::uniform_real_distribution<double> dist(-1e6, 1e6);
+    std::vector<double> data(5000);
+    for (auto& x : data) x = dist(rng);
+    DASv1 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+// ============ DASv2 tests ============
+
+static void test_v2_empty() {
     std::vector<double> data;
     DASv2 sorter;
     sorter.sort(data);
     REQUIRE(data.empty());
 }
 
-TEST_CASE("DASv2 - Single element", "[das_v2]") {
+static void test_v2_single() {
     std::vector<double> data = {42.0};
     DASv2 sorter;
     sorter.sort(data);
@@ -122,28 +171,28 @@ TEST_CASE("DASv2 - Single element", "[das_v2]") {
     REQUIRE(data[0] == 42.0);
 }
 
-TEST_CASE("DASv2 - Two elements sorted", "[das_v2]") {
+static void test_v2_two_sorted() {
     std::vector<double> data = {1.0, 2.0};
     DASv2 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv2 - Two elements reverse", "[das_v2]") {
+static void test_v2_two_reverse() {
     std::vector<double> data = {2.0, 1.0};
     DASv2 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv2 - All identical", "[das_v2]") {
+static void test_v2_all_identical() {
     std::vector<double> data(1000, 42.0);
     DASv2 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv2 - Already sorted", "[das_v2]") {
+static void test_v2_already_sorted() {
     std::vector<double> data;
     for (int i = 0; i < 1000; ++i) data.push_back(static_cast<double>(i));
     DASv2 sorter;
@@ -151,7 +200,7 @@ TEST_CASE("DASv2 - Already sorted", "[das_v2]") {
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv2 - Reverse sorted", "[das_v2]") {
+static void test_v2_reverse_sorted() {
     std::vector<double> data;
     for (int i = 1000; i > 0; --i) data.push_back(static_cast<double>(i));
     DASv2 sorter;
@@ -159,38 +208,36 @@ TEST_CASE("DASv2 - Reverse sorted", "[das_v2]") {
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv2 - Random data", "[das_v2]") {
+static void test_v2_random() {
     auto data = generateRandom(10000);
     DASv2 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv2 - Exactly 16 elements (insertion threshold)", "[das_v2]") {
+static void test_v2_exactly_16() {
     auto data = generateRandom(16);
     DASv2 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv2 - Exactly 32 elements (sample size)", "[das_v2]") {
+static void test_v2_exactly_32() {
     auto data = generateRandom(32);
     DASv2 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv2 - Duplicates", "[das_v2]") {
+static void test_v2_duplicates() {
     std::vector<double> data(1000);
-    for (int i = 0; i < 1000; ++i) {
-        data[i] = static_cast<double>(i % 10);
-    }
+    for (int i = 0; i < 1000; ++i) data[i] = static_cast<double>(i % 10);
     DASv2 sorter;
     sorter.sort(data);
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("DASv2 - Nearly sorted (0.1% unsorted)", "[das_v2]") {
+static void test_v2_nearly_sorted() {
     std::vector<double> data;
     for (int i = 0; i < 10000; ++i) data.push_back(static_cast<double>(i));
     std::mt19937 rng(42);
@@ -204,18 +251,60 @@ TEST_CASE("DASv2 - Nearly sorted (0.1% unsorted)", "[das_v2]") {
     REQUIRE(isSorted(data));
 }
 
-TEST_CASE("Compare v1 vs v2 - Same result", "[compare]") {
+// ============ Cross-version comparison ============
+
+static void test_compare_v1_v2() {
     for (int trial = 0; trial < 10; ++trial) {
         auto data1 = generateRandom(1000, trial);
         auto data2 = data1;
-        
+
         DASv1 v1;
         DASv2 v2;
         v1.sort(data1);
         v2.sort(data2);
-        
+
         REQUIRE(isSorted(data1));
         REQUIRE(isSorted(data2));
         REQUIRE(data1 == data2);
     }
+}
+
+int main() {
+    std::printf("Running DAS unit tests...\n\n");
+
+    run_case("DASv1 - Empty array", test_v1_empty);
+    run_case("DASv1 - Single element", test_v1_single);
+    run_case("DASv1 - Two elements sorted", test_v1_two_sorted);
+    run_case("DASv1 - Two elements reverse", test_v1_two_reverse);
+    run_case("DASv1 - All identical", test_v1_all_identical);
+    run_case("DASv1 - Already sorted", test_v1_already_sorted);
+    run_case("DASv1 - Reverse sorted", test_v1_reverse_sorted);
+    run_case("DASv1 - Random data", test_v1_random);
+    run_case("DASv1 - Exactly 16 elements (insertion threshold)", test_v1_exactly_16);
+    run_case("DASv1 - Exactly 32 elements", test_v1_exactly_32);
+    run_case("DASv1 - Duplicates", test_v1_duplicates);
+    run_case("DASv1 - Negative values", test_v1_negative_values);
+
+    run_case("DASv2 - Empty array", test_v2_empty);
+    run_case("DASv2 - Single element", test_v2_single);
+    run_case("DASv2 - Two elements sorted", test_v2_two_sorted);
+    run_case("DASv2 - Two elements reverse", test_v2_two_reverse);
+    run_case("DASv2 - All identical", test_v2_all_identical);
+    run_case("DASv2 - Already sorted", test_v2_already_sorted);
+    run_case("DASv2 - Reverse sorted", test_v2_reverse_sorted);
+    run_case("DASv2 - Random data", test_v2_random);
+    run_case("DASv2 - Exactly 16 elements (insertion threshold)", test_v2_exactly_16);
+    run_case("DASv2 - Exactly 32 elements (sample size)", test_v2_exactly_32);
+    run_case("DASv2 - Duplicates", test_v2_duplicates);
+    run_case("DASv2 - Nearly sorted (0.1% unsorted)", test_v2_nearly_sorted);
+
+    run_case("Compare v1 vs v2 - Same result", test_compare_v1_v2);
+
+    std::printf("\n%d checks, %d failures\n", g_checks, g_failures);
+    if (g_failures == 0) {
+        std::printf("ALL TESTS PASSED\n");
+        return 0;
+    }
+    std::printf("TESTS FAILED\n");
+    return 1;
 }
