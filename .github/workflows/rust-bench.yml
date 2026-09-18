@@ -21,9 +21,12 @@ jobs:
         run: rustc --version && cargo --version
 
       - name: Unit tests
-        run: cargo test --release --manifest-path rust_port/Cargo.toml
+        run: |
+          set -o pipefail
+          cargo test --release --manifest-path rust_port/Cargo.toml 2>&1 | tee test_out.txt
 
       - name: Benchmark vs std sorts
+        if: success()
         run: |
           set -o pipefail
           cargo run --release --manifest-path rust_port/Cargo.toml | tee bench_out.txt
@@ -38,14 +41,21 @@ jobs:
             echo '```'
           } > rust_port/BENCH_RESULTS.md
 
-      - name: Commit results back
+      - name: Commit results back (even on failure)
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add rust_port/BENCH_RESULTS.md
+          if [ -f bench_out.txt ]; then
+            cp bench_out.txt rust_port/bench_output.txt
+          fi
+          if [ -f test_out.txt ]; then
+            cp test_out.txt rust_port/test_output.txt
+          fi
+          git add -A rust_port/ 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No results change"
           else
-            git commit -m "bench: update Rust port results (CI run ${{ github.run_id }}) [skip ci]"
+            git commit -m "ci: results from run ${{ github.run_id }} [skip ci]"
             git push
           fi

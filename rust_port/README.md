@@ -41,3 +41,4 @@ cargo run --release
    语义一致。
 5. 安全性: 整个移植零 `unsafe`, 不可能越界; C++ 初版的 1KB 固定栈在
    Rust 里只是最坏情况时间护栏, 不再涉及内存安全。
+# ci-output-capture trigger 1789718481
