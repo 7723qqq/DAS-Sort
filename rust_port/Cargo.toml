@@ -1,0 +1,10 @@
+[package]
+name = "das_sort_rs"
+version = "0.1.0"
+edition = "2021"
+description = "Safe-Rust port of DAS v1 (Density Adaptive Sort) with std-library benchmark"
+
+[dependencies]
+
+[profile.release]
+opt-level = 3

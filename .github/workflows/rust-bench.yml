@@ -1,0 +1,24 @@
+name: Rust port bench
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ["rust_port/**"]
+  pull_request:
+    paths: ["rust_port/**"]
+
+jobs:
+  bench:
+    name: DAS v1 Rust port vs std sorts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain (preinstalled on runners)
+        run: rustc --version && cargo --version
+
+      - name: Unit tests
+        run: cargo test --release --manifest-path rust_port/Cargo.toml
+
+      - name: Benchmark vs std sorts
+        run: cargo run --release --manifest-path rust_port/Cargo.toml
