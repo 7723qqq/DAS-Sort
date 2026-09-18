@@ -34,6 +34,7 @@
 #include <string>
 #include <functional>
 
+#include "../das_v1.hpp"
 #include "../v2/das_v2.hpp"
 #include "../das_v6.hpp"
 
@@ -148,6 +149,9 @@ static std::vector<Sorter> makeSorters() {
         gfx::timsort(a.begin(), a.end());
     }, true});
 #endif
+    s.push_back({"DASv1", [](std::vector<double>& a) {
+        DASv1 x; x.sort(a);
+    }, true});
     s.push_back({"DASv2", [](std::vector<double>& a) {
         DASv2 x; x.sort(a);
     }, true});
