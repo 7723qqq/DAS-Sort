@@ -6,6 +6,9 @@ __pycache__/
 .venv/
 venv/
 
+# Rust build artifacts
+rust_port/target/
+
 # C++ build artifacts
 *.o
 *.obj

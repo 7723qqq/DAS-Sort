@@ -46,13 +46,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ -f bench_out.txt ]; then
-            cp bench_out.txt rust_port/bench_output.txt
-          fi
-          if [ -f test_out.txt ]; then
-            cp test_out.txt rust_port/test_output.txt
-          fi
-          git add -A rust_port/ 2>/dev/null || true
+          git add rust_port/BENCH_RESULTS.md rust_port/bench_output.txt rust_port/test_output.txt 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No results change"
           else

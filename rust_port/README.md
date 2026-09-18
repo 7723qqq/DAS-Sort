@@ -14,6 +14,23 @@ cargo test --release
 cargo run --release
 ```
 
+## "地道 Rust" 版 (das_idiomatic) 与代价
+
+`src/das_idiomatic.rs` 是同一算法的惯用 Rust 重写: extension trait
+(`v.das_sort()`)、`Vec` 栈、子切片局部分区 + `swap` 原语、`fold` 求
+min/max、完整 doc comment。两个诚实发现:
+
+1. **stable Rust 没有原位分区原语**: `partition_in_place` 至今是
+   nightly-only 实验特性 (#62543), std 自己的排序内部用 unsafe 实现分区。
+   "地道的安全 Rust" 在这里只能手写。
+2. **地道化的性能代价取决于数据结构** (rustc 1.98.1, 1M): Sorted/
+   OrganPipe 完全持平, Random +8%, 但 **Reverse 慢 20 倍**
+   (1.13ms -> 22.44ms)。原因: 两种分区切出相同的分界点, 但**半区内
+   元素排列不同** —— C 风格双指针分区恰好把逆序输入切成两个有序半区
+   (触发 O(n) 早退), 前向 swap 分区把半区切成逆序 (全程快排)。
+   结论: 对自适应排序而言, "同一种算法" 的说法在分区内部排列依赖
+   自适应路径时不成立 —— 分区风格是算法语义的一部分。
+
 ## 实测结论 (rustc 1.98.1, GitHub Actions runner)
 
 | n = 1M | das_v1 | std sort (driftsort) | sort_unstable (ipnsort) |

@@ -124,8 +124,9 @@ fn main() {
     }
 
     println!(
-        "\nNote: 7 runs truncated mean. das_v1 = C-style port, das_idio =\n\
-         idiomatic rewrite (trait + partition_in_place + Vec stack).\n\
+        "\nNote: 7 runs truncated mean. das_v1 = C-style two-pointer port,\n\
+         das_idio = idiomatic edition (trait + Vec stack + subslice\n\
+         partition; same split points, different within-half orderings).\n"
          std sort = stable (driftsort on 1.81+, Timsort before);\n\
          sort_unstable = ipnsort on 1.81+ (pdqsort before)."
     );
