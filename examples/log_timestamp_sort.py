@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from v2.das_v2 import DASv2
+from das_v6 import DASv6
 
 
 def generate_log_entries(count, out_of_order_ratio=0.001):
@@ -47,18 +48,23 @@ def main():
         
         entries = generate_log_entries(count)
         timestamps = [e['timestamp'].timestamp() for e in entries]
+        TIMESTAMP_COPY = timestamps.copy()
         
-        sorter = DASv2()
         start = time.perf_counter()
-        sorter.sort(timestamps)
+        DASv2().sort(timestamps)
         t_das = time.perf_counter() - start
-        
-        timestamps2 = [e['timestamp'].timestamp() for e in entries]
+
+        start = time.perf_counter()
+        DASv6().sort(timestamps)
+        t_das6 = time.perf_counter() - start
+
+        timestamps2 = TIMESTAMP_COPY
         start = time.perf_counter()
         timestamps2.sort()
         t_builtin = time.perf_counter() - start
-        
+
         print(f"  DAS v2:    {t_das*1000:.2f} ms")
+        print(f"  DAS v6:    {t_das6*1000:.2f} ms")
         print(f"  Built-in:  {t_builtin*1000:.2f} ms")
 
 

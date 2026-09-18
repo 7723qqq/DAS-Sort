@@ -118,6 +118,8 @@ DAS-Sort/
 ├── das_v1.hpp              # C++ v1 implementation
 ├── das_v1.py               # Python v1 implementation
 ├── das_v5.py               # Python experimental v5
+├── das_v6.hpp              # C++ experimental v6 (run-adaptive hybrid)
+├── das_v6.py               # Python experimental v6 (run-adaptive hybrid)
 ├── das_sort_pure.cpp       # standalone v1-style sort + benchmark
 ├── benchmark_extended.cpp  # extended 14-scenario benchmark
 ├── benchmark/

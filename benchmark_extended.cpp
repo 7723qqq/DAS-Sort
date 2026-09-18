@@ -1,9 +1,12 @@
 /**
- * benchmark_extended.cpp - Extended benchmark: DAS v1 / DAS v2 / std::sort
+ * benchmark_extended.cpp - Extended benchmark: DAS v1 / v2 / v6 vs std::sort
  *
  * Reproduces the 14 scenarios documented in v2/BENCHMARK.md:
  *   Random, Sorted, Reverse, Duplicates, Normal, Skewed, AlmostSort,
  *   AlmostRev, AllSame, Bimodal, SmallRange, LogNormal, Sawtooth, PipeOrgan
+ *
+ * v6 additionally exploits run structure (Sorted, Reverse, Sawtooth,
+ * PipeOrgan, and other patterns made of a few ascending runs).
  *
  * Build:
  *   g++ -O2 -std=c++17 benchmark_extended.cpp -o benchmark_extended
@@ -21,10 +24,11 @@
 #include <string>
 
 #include "das_v1.hpp"
+#include "das_v6.hpp"
 #include "v2/das_v2.hpp"
 
 static const int DATA_SIZE = 100000;
-static const int RUNS = 7;   // truncated mean: drop 2 slowest + 2 fastest
+static const int RUNS = 7;   // truncated mean: drop slowest + fastest quartiles
 
 // ============ Data generators ============
 
@@ -121,6 +125,7 @@ using SortFn = void (*)(std::vector<double>&);
 static void sort_std(std::vector<double>& a) { std::sort(a.begin(), a.end()); }
 static void sort_v1(std::vector<double>& a) { DASv1 s; s.sort(a); }
 static void sort_v2(std::vector<double>& a) { DASv2 s; s.sort(a); }
+static void sort_v6(std::vector<double>& a) { DASv6 s; s.sort(a); }
 
 // Truncated mean of `runs` timings (drop the fastest and slowest quartiles)
 double measure(const std::vector<double>& original, SortFn fn) {
@@ -152,16 +157,17 @@ int main() {
     std::mt19937 rng(42);
 
     std::cout << "=======================================================================\n";
-    std::cout << "     DAS Extended Benchmark: DAS v1 / DAS v2 vs std::sort\n";
+    std::cout << "     DAS Extended Benchmark: DAS v1 / v2 / v6 vs std::sort\n";
     std::cout << "     " << DATA_SIZE << " elements, " << RUNS
               << " runs (truncated mean)\n";
     std::cout << "=======================================================================\n\n";
 
     std::cout << std::left
               << std::setw(13) << "Scenario"
-              << std::setw(12) << "std::sort"
-              << std::setw(12) << "DAS v1"
-              << std::setw(12) << "DAS v2"
+              << std::setw(11) << "std::sort"
+              << std::setw(11) << "DAS v1"
+              << std::setw(11) << "DAS v2"
+              << std::setw(11) << "DAS v6"
               << std::setw(10) << "Winner"
               << std::setw(10) << "Speedup" << std::endl;
     std::cout << "-----------------------------------------------------------------------\n";
@@ -187,47 +193,58 @@ int main() {
         {"PipeOrgan", gen_pipe_organ},
     };
 
-    int std_wins = 0, v1_wins = 0, v2_wins = 0;
+    int std_wins = 0, das_wins = 0;
+    const char* das_names[3] = {"DAS v1", "DAS v2", "DAS v6"};
 
     for (const auto& sc : scenarios) {
         std::vector<double> data(DATA_SIZE);
         sc.gen(data, rng);
 
         double t_std = measure(data, sort_std);
-        double t_v1 = measure(data, sort_v1);
-        double t_v2 = measure(data, sort_v2);
+        double t_das[3];
+        t_das[0] = measure(data, sort_v1);
+        t_das[1] = measure(data, sort_v2);
+        t_das[2] = measure(data, sort_v6);
 
-        if (t_std < 0 || t_v1 < 0 || t_v2 < 0) return 1;
+        if (t_std < 0) return 1;
+        for (double t : t_das) {
+            if (t < 0) return 1;
+        }
 
-        double best = std::min(t_std, std::min(t_v1, t_v2));
+        int best_das = 0;
+        for (int i = 1; i < 3; ++i) {
+            if (t_das[i] < t_das[best_das]) best_das = i;
+        }
+
         const char* winner;
-        if (best == t_std) { winner = "std::sort"; ++std_wins; }
-        else if (best == t_v1) { winner = "DAS v1"; ++v1_wins; }
-        else { winner = "DAS v2"; ++v2_wins; }
-
-        double best_das = std::min(t_v1, t_v2);
-        double speedup = best_das / t_std;
+        double speedup;
+        if (t_std < t_das[best_das]) {
+            winner = "std::sort";
+            ++std_wins;
+            speedup = t_std / t_das[best_das];
+        } else {
+            winner = das_names[best_das];
+            ++das_wins;
+            speedup = t_das[best_das] / t_std;
+        }
 
         std::cout << std::left << std::setw(13) << sc.name
-                  << std::setw(12) << std::fixed << std::setprecision(2) << t_std
-                  << std::setw(12) << t_v1
-                  << std::setw(12) << t_v2
-                  << std::setw(10) << winner;
-        if (speedup < 1.0) {
-            std::cout << std::setprecision(1) << (t_std / best_das) << "x DAS";
-        } else {
-            std::cout << std::setprecision(1) << speedup << "x std";
-        }
-        std::cout << std::endl;
+                  << std::setw(11) << std::fixed << std::setprecision(2) << t_std
+                  << std::setw(11) << t_das[0]
+                  << std::setw(11) << t_das[1]
+                  << std::setw(11) << t_das[2]
+                  << std::setw(10) << winner
+                  << std::setprecision(1) << speedup << "x "
+                  << ((winner[0] == 's') ? "std" : "DAS")
+                  << std::endl;
     }
 
     std::cout << "-----------------------------------------------------------------------\n";
-    std::cout << "Wins: std::sort=" << std_wins
-              << "  DAS v1=" << v1_wins
-              << "  DAS v2=" << v2_wins << std::endl;
+    std::cout << "Wins: std::sort=" << std_wins << "  DAS=" << das_wins << std::endl;
     std::cout << "\nExpected: DAS typically wins on adaptive patterns such as\n";
-    std::cout << "Sorted / Reverse / AllSame (O(n) detection); std::sort wins on\n";
-    std::cout << "random-like data. Exact margins vary by platform and compiler.\n";
+    std::cout << "Sorted / Reverse / Sawtooth / PipeOrgan (O(n) detection or run\n";
+    std::cout << "merging); std::sort wins on random-like data. Exact margins vary\n";
+    std::cout << "by platform and compiler.\n";
 
     return 0;
 }

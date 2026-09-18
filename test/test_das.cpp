@@ -15,6 +15,7 @@
 #include <cstring>
 
 #include "../das_v1.hpp"
+#include "../das_v6.hpp"
 #include "../v2/das_v2.hpp"
 
 // ============ Minimal test harness ============
@@ -251,21 +252,158 @@ static void test_v2_nearly_sorted() {
     REQUIRE(isSorted(data));
 }
 
+// ============ DASv6 tests ============
+
+static void test_v6_empty() {
+    std::vector<double> data;
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(data.empty());
+}
+
+static void test_v6_single() {
+    std::vector<double> data = {42.0};
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(data.size() == 1);
+    REQUIRE(data[0] == 42.0);
+}
+
+static void test_v6_two_sorted() {
+    std::vector<double> data = {1.0, 2.0};
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_two_reverse() {
+    std::vector<double> data = {2.0, 1.0};
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_all_identical() {
+    std::vector<double> data(1000, 42.0);
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_already_sorted() {
+    std::vector<double> data;
+    for (int i = 0; i < 1000; ++i) data.push_back(static_cast<double>(i));
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_reverse_sorted() {
+    std::vector<double> data;
+    for (int i = 1000; i > 0; --i) data.push_back(static_cast<double>(i));
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_random() {
+    auto data = generateRandom(10000);
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_exactly_16() {
+    auto data = generateRandom(16);
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_exactly_32() {
+    auto data = generateRandom(32);
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_duplicates() {
+    std::vector<double> data(1000);
+    for (int i = 0; i < 1000; ++i) data[i] = static_cast<double>(i % 10);
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_organ_pipe_merge_path() {
+    // 2 runs -> natural merge path
+    std::vector<double> data;
+    for (int i = 0; i < 5000; ++i) data.push_back(static_cast<double>(i));
+    for (int i = 5000; i > 0; --i) data.push_back(static_cast<double>(i));
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_concat_segments_merge_path() {
+    // 4 internally-sorted shuffled segments -> merge path
+    std::vector<double> data;
+    const int seg_order[4] = {3, 0, 2, 1};
+    for (int s = 0; s < 4; ++s) {
+        for (int i = 0; i < 1000; ++i) {
+            data.push_back(static_cast<double>(seg_order[s] * 1000 + i));
+        }
+    }
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_nearly_sorted() {
+    std::vector<double> data;
+    for (int i = 0; i < 10000; ++i) data.push_back(static_cast<double>(i));
+    std::mt19937 rng(42);
+    for (int i = 0; i < 10; ++i) {
+        int a = rng() % 10000;
+        int b = rng() % 10000;
+        std::swap(data[a], data[b]);
+    }
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
+static void test_v6_sawtooth_merge_path() {
+    // 10 ascending sawtooth periods -> merge path
+    std::vector<double> data;
+    for (int i = 0; i < 10000; ++i) {
+        data.push_back(static_cast<double>(i % 1000));
+    }
+    DASv6 sorter;
+    sorter.sort(data);
+    REQUIRE(isSorted(data));
+}
+
 // ============ Cross-version comparison ============
 
-static void test_compare_v1_v2() {
+static void test_compare_v1_v2_v6() {
     for (int trial = 0; trial < 10; ++trial) {
         auto data1 = generateRandom(1000, trial);
         auto data2 = data1;
+        auto data6 = data1;
 
         DASv1 v1;
         DASv2 v2;
+        DASv6 v6;
         v1.sort(data1);
         v2.sort(data2);
+        v6.sort(data6);
 
         REQUIRE(isSorted(data1));
         REQUIRE(isSorted(data2));
+        REQUIRE(isSorted(data6));
         REQUIRE(data1 == data2);
+        REQUIRE(data1 == data6);
     }
 }
 
@@ -298,7 +436,23 @@ int main() {
     run_case("DASv2 - Duplicates", test_v2_duplicates);
     run_case("DASv2 - Nearly sorted (0.1% unsorted)", test_v2_nearly_sorted);
 
-    run_case("Compare v1 vs v2 - Same result", test_compare_v1_v2);
+    run_case("DASv6 - Empty array", test_v6_empty);
+    run_case("DASv6 - Single element", test_v6_single);
+    run_case("DASv6 - Two elements sorted", test_v6_two_sorted);
+    run_case("DASv6 - Two elements reverse", test_v6_two_reverse);
+    run_case("DASv6 - All identical", test_v6_all_identical);
+    run_case("DASv6 - Already sorted", test_v6_already_sorted);
+    run_case("DASv6 - Reverse sorted", test_v6_reverse_sorted);
+    run_case("DASv6 - Random data", test_v6_random);
+    run_case("DASv6 - Exactly 16 elements (insertion threshold)", test_v6_exactly_16);
+    run_case("DASv6 - Exactly 32 elements", test_v6_exactly_32);
+    run_case("DASv6 - Duplicates", test_v6_duplicates);
+    run_case("DASv6 - Organ pipe (merge path)", test_v6_organ_pipe_merge_path);
+    run_case("DASv6 - Concatenated segments (merge path)", test_v6_concat_segments_merge_path);
+    run_case("DASv6 - Nearly sorted", test_v6_nearly_sorted);
+    run_case("DASv6 - Sawtooth (merge path)", test_v6_sawtooth_merge_path);
+
+    run_case("Compare v1 vs v2 vs v6 - Same result", test_compare_v1_v2_v6);
 
     std::printf("\n%d checks, %d failures\n", g_checks, g_failures);
     if (g_failures == 0) {

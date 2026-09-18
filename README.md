@@ -43,11 +43,14 @@
 > three-way value-band partitioning, reverse-order detection, and a
 > counting-sort path for few-unique data. See [CHANGELOG.md](CHANGELOG.md).
 >
-> **Experimental**: `das_v6.py` adds Timsort-style run detection on top of
-> the quicksort core: one pass finds ascending runs (reversing descending
-> ones); few-run data is finished by natural merging in O(n·log R) (stable),
-> everything else falls back to v2-style quicksort. Best for run-structured
-> data: concatenated sorted segments, organ pipes, reversed inputs.
+> **Experimental**: v6 (`das_v6.py` / `das_v6.hpp`) adds Timsort-style run
+> detection on top of the quicksort core: one pass finds ascending runs
+> (reversing descending ones); few-run data is finished by natural merging
+> in O(n·log R) (stable), everything else falls back to v2-style quicksort.
+> Best for run-structured data: concatenated sorted segments, organ pipes,
+> sawtooths, reversed inputs. On this repo's extended benchmark (100K
+> doubles, g++ -O2) v6 beats `std::sort` 32x on PipeOrgan, 2.8x on Sawtooth
+> and 8.6x on Reverse.
 
 ## Algorithm
 
@@ -150,7 +153,8 @@ DAS-Sort/
 ├── das_v1.hpp
 ├── das_v1.py
 ├── das_v5.py              # experimental v5 (Python only)
-├── das_v6.py              # experimental v6: run-adaptive hybrid (Python only)
+├── das_v6.hpp             # experimental v6: run-adaptive hybrid (C++)
+├── das_v6.py              # experimental v6: run-adaptive hybrid (Python)
 ├── das_sort_pure.cpp      # standalone v1-style sort + benchmark
 ├── benchmark_extended.cpp # extended 14-scenario benchmark
 ├── benchmark/

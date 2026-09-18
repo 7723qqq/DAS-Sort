@@ -24,9 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   few-run data (O(n·log R), stable) with v2-style quicksort fallback;
   includes `TestDASv6` with a merge-path stability test, a v6 column in
   the benchmark script, and a v6 demo entry point
+- `das_v6.hpp`: C++ port of v6 with the same DASv2-style API, reused
+  merge buffer, and an explicit-stack quicksort fallback; DASv6 cases in
+  `test/test_das.cpp` (merge-path, fallback, cross-version consistency)
+  and a DAS v6 column in `benchmark_extended.cpp`
 - `TestDASv5` unit tests and cross-consistency tests covering v1/v2/v5/v6
 - GitHub Actions CI: Python pytest matrix (3.8 / 3.13) + C++ build & test
 - `.gitignore`
+
+### Changed
+- Examples now also benchmark DAS v6 on their near-sorted timestamp data
+  (v6 is 3-5x faster than v2 there)
 
 ### Fixed
 - v5 counting-sort path mis-triggered on continuous float data: the
